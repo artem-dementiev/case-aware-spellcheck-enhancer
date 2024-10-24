@@ -40,7 +40,7 @@ After the next launch of **Obsidian**, the words in these formats will no longer
 ## Installation
 
 1. **Download the Plugin**:
-	- Go to the plugin’s [GitHub releases page](#) and download the latest `.zip` file.
+	- Go to the plugin’s [GitHub releases page](https://github.com/artem-dementiev/case-aware-spellcheck-enhancer/releases) and download the latest `.zip` file.
 
 2. **Unzip the Plugin**:
 	- Extract the contents of the `.zip` file to your `.obsidian/plugins` folder in your vault.
