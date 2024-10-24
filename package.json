@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "case-aware-spellcheck-enhancer",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "If you spend most of your time in the editing view and find yourself annoyed by the red spellcheck underline, you might find this plugin useful since it will automatically add words written in a certain format to a system dictionary, so that Obsidian won't underline them the next time you launch it.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -9,7 +9,7 @@
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [],
-	"author": "",
+	"author": "artem-dementiev",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^16.11.6",
@@ -20,5 +20,15 @@
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"typescript": "4.7.4"
-	}
+	},
+	"dependencies": {
+		"dictionary-de": "^3.0.0",
+		"dictionary-en": "^4.0.0",
+		"dictionary-fr": "^3.0.0",
+		"dictionary-ru": "^3.0.0",
+		"dictionary-uk": "^4.0.0",
+		"iconv-lite": "^0.6.3",
+		"nspell": "^2.1.5"
+	},
+	"homepage": "https://github.com/artem-dementiev/case-aware-spellcheck-enhancer"
 }

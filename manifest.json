@@ -1,11 +1,10 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "spellcheck-plugin",
+	"name": "Case-Aware Spellcheck Enhancer Plugin",
 	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"minAppVersion": "1.7.4",
+	"description": "Adds words in supported formats to the system dictionary if they consist of valid sub-words. Supported naming conventions: camelCase, PascalCase, snake_case, kebab-case, SCREAMING_SNAKE_CASE. Supported languages: English, French, German, Ukrainian, Russian",
+	"author": "artem-dementiev",
+	"authorUrl": "https://github.com/artem-dementiev",
 	"isDesktopOnly": false
 }

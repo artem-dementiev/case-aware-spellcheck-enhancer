@@ -1,96 +1,89 @@
-# Obsidian Sample Plugin
+# Case-Aware Spellcheck Enhancer
+## Overview
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+If you spend most of your time in the editing view and find yourself annoyed by the red spellcheck underline,
+you might find this plugin useful since it will automatically add words written in a certain format to a system dictionary, so that Obsidian won't underline them the next time you launch it.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+When working in **Obsidian**, I tend to use naming conventions, including `camelCase`, `PascalCase`, and others.
+The spellcheck feature often marks these words with a red underline, making it distracting to read and edit notes.
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+Although spellcheck can be disabled in the **Obsidian settings**, that’s not a suitable solution for me.
+To avoid manually adding these words to the system dictionary.
+I’ve developed a plugin that **automatically scans the active file** and adds words written in specific formats
+(e.g., `camelCase`, `PascalCase`) to the system dictionary.
+This is done only if each individual internal word is valid according to [dictionaries](https://github.com/wooorm/dictionaries).
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+After the next launch of **Obsidian**, the words in these formats will no longer be underlined by the spellchecker.
 
-## First time developing plugins?
+---
 
-Quick starting guide for new plugin devs:
+## Features
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+- **Automatic dictionary updates**: Adds words in supported formats to the system dictionary if they consist of valid sub-words.
+- **Supported languages**:
+	- English
+	- French
+	- German
+	- Ukrainian
+	- Russian
+- **Supported naming conventions**:
+	- `camelCase`
+	- `PascalCase`
+	- `snake_case`
+	- `kebab-case`
+	- `SCREAMING_SNAKE_CASE`
 
-## Releasing new releases
+> **Note**: Obsidian doesn’t underline the last three formats, but they are included as a precaution for future compatibility.
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+---
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+## Installation
 
-## Adding your plugin to the community plugin list
+1. **Download the Plugin**:
+	- Go to the plugin’s [GitHub releases page](#) and download the latest `.zip` file.
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+2. **Unzip the Plugin**:
+	- Extract the contents of the `.zip` file to your `.obsidian/plugins` folder in your vault.
 
-## How to use
+3. **Enable the Plugin**:
+	- Open Obsidian, go to **Settings** > **Community plugins** > **Manage**, and enable the **CamelCase Dictionary Helper** plugin.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+4. **Restart Obsidian**:
+	- Restart the application for the changes to take effect.
 
-## Manually installing the plugin
+---
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+## How It Works
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+1. **Naming conventions**:
+	- The plugin scans your notes and identifies words in the following formats:
+		- `camelCase`
+		- `PascalCase`
+		- `snake_case`
+		- `kebab-case`
+		- `SCREAMING_SNAKE_CASE`
 
-## Funding URL
+2. **Spellcheck Validation**:
+	- For each word found in these formats, the plugin checks if the individual sub-words (e.g., `camel` and `Case` in `camelCase`) are valid according to the selected language dictionary.
+	- If all sub-words are valid, the entire word is added to the **system dictionary**.
 
-You can include funding URLs where people who use your plugin can financially support it.
+3. **Supported Languages**:
+	- The plugin supports **5 languages**: English, French, German, Ukrainian, and Russian. These dictionaries are sourced from [dictionaries by wooorm](https://github.com/wooorm/dictionaries).
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+4. **System Dictionary Update**:
+	- After the system dictionary is updated, **Obsidian** no longer underlines those words during spellcheck.
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+---
 
-If you have multiple URLs, you can also do:
+## Developer Notes
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+- **Adding New Language Support**:
+  To add support for a new language, you need to:
+	- **Extend `DICTIONARY_URLS`**: Add the appropriate URL for the new language’s dictionary.
+	- **Update Regex**: Modify the regex patterns in the `splitCamelCase`, `splitPascalCase`, and `runSpellcheckOnNotes` methods to support new formats.
 
-## API Documentation
+---
 
-See https://github.com/obsidianmd/obsidian-api
+## Contributions
+
+Feel free to submit pull requests or open issues on the plugin’s GitHub page for suggestions, bugs, or new features.
