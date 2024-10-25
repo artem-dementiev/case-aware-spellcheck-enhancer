@@ -2,7 +2,6 @@ import {App, Notice, PluginSettingTab, Setting} from 'obsidian'
 import {CaseAwareSpellcheckEnhancer} from "./plugin";
 import {FormatStyle} from "./enums";
 import {SystemDictionaryPathModal} from "./modals";
-import {PLUGIN_NAME} from "./constants";
 
 export interface CaseAwareSpellcheckEnhancerSettings {
 	dictionaryPath: string;
@@ -10,6 +9,7 @@ export interface CaseAwareSpellcheckEnhancerSettings {
 	formatStyles: FormatStyle[];
 	selectedDictionaries: string[]; // List of selected dictionaries (e.g., ['en', 'fr'])
 	allowedExtensions: string;
+	debugMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: CaseAwareSpellcheckEnhancerSettings = {
@@ -17,7 +17,8 @@ export const DEFAULT_SETTINGS: CaseAwareSpellcheckEnhancerSettings = {
 	refreshInterval: 30, // Default to 30 seconds
 	formatStyles: [FormatStyle.CamelCase, FormatStyle.PascalCase], // Preselect some styles
 	selectedDictionaries: ['en'],
-	allowedExtensions: ".md,.txt"
+	allowedExtensions: ".md,.txt",
+	debugMode: false
 };
 
 export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
@@ -32,9 +33,23 @@ export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 
 		containerEl.empty();
-		containerEl.createEl('h2', { text: `${PLUGIN_NAME} Plugin Settings` });
 
-		containerEl.createEl('h3', { text: 'Spell checking dictionaries' });
+		// Dictionary Path Setting (with a modal window to select a file)
+		new Setting(containerEl)
+			.setName('System dictionary path')
+			.setDesc('Path to the system spellcheck dictionary file')
+			.addButton(button => button
+				.setButtonText("Select Dictionary File")
+				.onClick(async () => {
+					await this.openFilePicker();
+				}));
+
+		new Setting(containerEl)
+			.setName('System dictionary path (Read-only mode)')
+			.setDesc('Path to the system spellcheck dictionary file')
+			.addText(text => text.setValue(this.plugin.settings.dictionaryPath).setDisabled(true));
+
+		new Setting(containerEl).setName('Spell checking dictionaries').setHeading();
 		const dictionaries = [
 			{ code: 'en', name: 'English' },
 			{ code: 'uk', name: 'Ukrainian' },
@@ -49,43 +64,26 @@ export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
 			// Create a checkbox for each dictionary
 			new Setting(containerEl)
 				.setName(dict.name)
+				.setDesc('Dictionaries that will be used to check if a word is correct')
 				.addToggle(toggle => {
 					toggle
 						.setValue(isChecked)
 						.onChange(async (value) => {
-							// Update the selected dictionaries array
 							if (value) {
 								this.plugin.settings.selectedDictionaries.push(dict.code);
 							} else {
 								this.plugin.settings.selectedDictionaries = this.plugin.settings.selectedDictionaries.filter(code => code !== dict.code);
 							}
 
-							// Save settings and reload dictionaries
 							await this.plugin.saveSettings();
 							await this.plugin.loadSelectedDictionaries();
 						});
 				});
 		});
 
-		containerEl.createEl('h3', { text: 'System dictionary' });
-		// Dictionary Path Setting (with modal window to select file)
+		new Setting(containerEl).setName('Miscellaneous').setHeading();
 		new Setting(containerEl)
-			.setName('System Dictionary Path')
-			.setDesc('Path to the system spellcheck dictionary file')
-			.addButton(button => button
-				.setButtonText("Select Dictionary File")
-				.onClick(async () => {
-					await this.openFilePicker();
-				}));
-
-		new Setting(containerEl)
-			.setName('System Dictionary Path (View mode)')
-			.setDesc('Path to the system spellcheck dictionary file')
-			.addText(text => text.setValue(this.plugin.settings.dictionaryPath).setDisabled(true));
-
-		containerEl.createEl('h3', { text: 'Miscellaneous' });
-		new Setting(containerEl)
-			.setName('Allowed File Extensions')
+			.setName('Allowed file extensions')
 			.setDesc('Comma-separated list of file extensions (e.g., .md, .txt) in which the plugin should operate')
 			.addText(text => text
 				.setPlaceholder('Enter file extensions')
@@ -97,7 +95,7 @@ export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Refresh Interval (seconds)')
+			.setName('Refresh interval (seconds)')
 			.setDesc('Time between content checks in seconds. New value will be used for a new active file or after restart')
 			.addText(text => text
 				.setPlaceholder('Enter time in seconds')
@@ -112,7 +110,18 @@ export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
 					}
 				}));
 
-		containerEl.createEl('h3', { text: 'Format Styles' });
+		new Setting(containerEl)
+			.setName('Debug Mode')
+			.setDesc('Enable verbose logging for debugging purposes')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.debugMode)
+				.onChange(async (value) => {
+					this.plugin.settings.debugMode = value;
+					await this.plugin.saveSettings();
+					this.plugin.log("Debug mode updated");
+				}));
+
+		new Setting(containerEl).setName('Naming conventions').setHeading();
 		Object.values(FormatStyle).forEach((style) => {
 			new Setting(containerEl)
 				.setName(style)

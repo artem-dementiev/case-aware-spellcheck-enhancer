@@ -2,33 +2,41 @@ import {Notice, Plugin, TFile} from "obsidian";
 import * as os from "os";
 import * as path from "path";
 import * as fs from "fs";
-import * as iconv from 'iconv-lite';
 // @ts-ignore
 import nspell from "nspell";
 import {FormatStyle} from "./enums";
 import {CaseAwareSpellcheckEnhancerSettings, CaseAwareSpellcheckEnhancerSettingTab, DEFAULT_SETTINGS} from "./settings";
-import {
-	detectFileEncodingByPlatform,
-	loadDictionary,
-	splitCamelCase,
-	splitKebabCase,
-	splitPascalCase,
-	splitScreamingSnakeCase,
-	splitSnakeCase
-} from "./utilities";
-import {PLUGIN_FOLDER_NAME, PLUGIN_NAME} from "./constants";
+import {getSplitWordsBasedOnFormat, loadDictionary} from "./utilities";
+import {LogLevel, PLUGIN_FOLDER_NAME, PLUGIN_NAME} from "./constants";
+import {FileSyncManager} from "./fileSyncManager";
 
 export class CaseAwareSpellcheckEnhancer extends Plugin {
 	settings: CaseAwareSpellcheckEnhancerSettings;
 	private dictionaryCache: Set<string> = new Set(); // Cache to store words from the dictionary
-	private dictionaryPathLock = false; // Mutex-like lock to ensure synchronization
+	private dictionarySyncManager: FileSyncManager;
 	private intervalId: number | null = null;
 	private activeFile: TFile | null = null;
 	private parsedAllowedExtensions: string[] = [];
 	private spellCheckers: nspell[] = [];
 
+	log(message: string, level: LogLevel = LogLevel.Info, ...optionalParams: any[]) {
+		if (this.settings.debugMode || level === LogLevel.Error) {
+			switch (level) {
+				case LogLevel.Warn:
+					console.warn(message, ...optionalParams);
+					break;
+				case LogLevel.Error:
+					console.error(message, ...optionalParams);
+					break;
+				default:
+					console.info(message, ...optionalParams);
+					break;
+			}
+		}
+	}
+
 	async onload() {
-		console.log(`Loading ${PLUGIN_NAME} Plugin`);
+		console.log(`Loading ${PLUGIN_NAME}`);
 
 		await this.loadSettings();
 		this.updateAllowedExtensions();
@@ -46,13 +54,14 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 	async onDictionaryPathChange(dictionaryPath: string): Promise<boolean> {
 		let isValid = this.validateDictionaryPath(dictionaryPath);
 		if (isValid) {
+			this.dictionarySyncManager = new FileSyncManager(dictionaryPath);
 			await this.loadDictionaryIntoCache();
 		}
 		return isValid;
 	}
 
 	onunload() {
-		console.log(`Unloading ${PLUGIN_NAME} Plugin`);
+		this.log(`Unloading ${PLUGIN_NAME}`);
 		this.stopRefreshInterval();
 	}
 
@@ -86,7 +95,7 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 				const spellChecker = await loadDictionary(lang, dictionaryFolder);
 				this.spellCheckers.push(spellChecker);
 			} catch (err) {
-				console.error(`Failed to load ${lang} dictionary:`, err);
+				this.log(`Failed to load ${lang} dictionary:`, LogLevel.Error, err);
 			}
 		}
 	}
@@ -118,13 +127,14 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 			if (dictionaryPath.endsWith(".dic") || dictionaryPath.endsWith(".txt")) {
 				// Check if file exists and is writable
 				fs.accessSync(dictionaryPath, fs.constants.W_OK);
-				console.log(`System dictionary file at ${dictionaryPath} is writable.`);
+				this.log(`System dictionary file at ${dictionaryPath} is writable.`);
 				return true;
 			} else {
 				new Notice(`Expected file extension for system dictionary is .dic (Windows) and .txt (Other OS).`);
 				return false;
 			}
 		} catch (err) {
+			this.log(`Cannot access system dictionary at: ${dictionaryPath}.`, LogLevel.Error);
 			new Notice(`Cannot access system dictionary at: ${dictionaryPath}. Please check permissions.`);
 			return false;
 		}
@@ -132,45 +142,20 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 
 	// Function to load the dictionary into memory (cache)
 	async loadDictionaryIntoCache() {
-		if (this.settings.dictionaryPath) {
+		if (this.settings.dictionaryPath && this.dictionarySyncManager != null) {
 			try {
-				const content = await this.readDictionaryFile();
+				const content = await this.dictionarySyncManager.readFile();
 				const words = content.split('\n').filter(Boolean);
 				this.dictionaryCache = new Set(words);
-				console.log("System dictionary loaded into cache.");
+				this.log("System dictionary loaded into cache.");
 			} catch (error) {
-				console.error("Failed to load system dictionary into cache:", error);
+				this.log("Failed to load system dictionary into cache:", LogLevel.Error, error);
 			}
 		}
 	}
 
-	// Function to read the dictionary file (synchronized)
-	async readDictionaryFile(): Promise<string> {
-		return new Promise((resolve, reject) => {
-			// Lock mechanism to prevent simultaneous reads
-			const interval = setInterval(() => {
-				if (!this.dictionaryPathLock) {
-					this.dictionaryPathLock = true; // Acquire lock
-					clearInterval(interval);
-
-					// Read the dictionary file
-					fs.readFile(this.settings.dictionaryPath, 'utf8', (err, data) => {
-						this.dictionaryPathLock = false; // Release lock
-						if (err) {
-							reject(err);
-						} else {
-							resolve(data);
-						}
-					});
-				}
-			}, 50); // Polling interval to wait for the lock
-		});
-	}
-
 	registerSpellcheckHook() {
-		this.app.workspace.on('file-open', this.handleFileSwitch.bind(this));
-
-		// Start the interval if the file is already open at load time
+		this.registerEvent(this.app.workspace.on('file-open', this.handleFileSwitch.bind(this)));
 		const currentFile = this.app.workspace.getActiveFile();
 		if (currentFile) {
 			this.handleFileSwitch(currentFile);
@@ -214,7 +199,7 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 					if (this.isWordMisspelled(word) && this.wordIsNotInDictionary(word)) {
 						// Try splitting the word based on the format styles
 						this.settings.formatStyles.forEach((format: FormatStyle) => {
-							const splitWords = this.getSplitWordsBasedOnFormat(word, format);
+							const splitWords = getSplitWordsBasedOnFormat(word, format);
 							if (splitWords.length > 1) {
 								// Check if all split words are spelled correctly
 
@@ -224,7 +209,6 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 
 								if (allSplitWordsCorrect) {
 									this.addWordToDictionary(word);
-
 								}
 							}
 						});
@@ -241,7 +225,7 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 
 	isWordMisspelled(word: string): boolean {
 		if (!this.spellCheckers.length) {
-			console.warn("No spellcheckers loaded.");
+			this.log("No spellcheckers loaded.", LogLevel.Warn);
 			return false; // If no dictionaries are loaded, assume the word is correct
 		}
 
@@ -257,79 +241,25 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 		return true;
 	}
 
-	// Function to get split words based on selected format style
-	getSplitWordsBasedOnFormat(word: string, format: FormatStyle): string[] {
-		let splitWords: string[] = [];
-
-		switch (format) {
-			case FormatStyle.CamelCase:
-				splitWords = [...splitWords, ...splitCamelCase(word)];
-				break;
-			case FormatStyle.PascalCase:
-				splitWords = [...splitWords, ...splitPascalCase(word)];
-				break;
-			case FormatStyle.SnakeCase:
-				splitWords = [...splitWords, ...splitSnakeCase(word)];
-				break;
-			case FormatStyle.KebabCase:
-				splitWords = [...splitWords, ...splitKebabCase(word)];
-				break;
-			case FormatStyle.ScreamingSnakeCase:
-				splitWords = [...splitWords, ...splitScreamingSnakeCase(word)];
-				break;
-		}
-
-		return splitWords;
-	}
-
 	// Function to add a word to the dictionary (synchronized and cached)
 	async addWordToDictionary(word: string) {
-		if (this.dictionaryCache.has(word)) {
-			// console.log(`"${word}" is already in the dictionary cache.`);
-			return;
-		}
+		return this.dictionarySyncManager.withFileLock(async () => {
+			if (this.dictionaryCache.has(word)) {
+				this.log(`"${word}" is already in the dictionary cache.`);
+				return;
+			}
 
-		return new Promise((resolve, reject) => {
-			const interval = setInterval(async () => {
-				if (!this.dictionaryPathLock) {
-					this.dictionaryPathLock = true; // Acquire lock
-					clearInterval(interval);
+			await this.removeChecksumAndAddWord(word);
 
-					// Re-check if the word is in the cache after acquiring lock to avoid race conditions
-					if (this.dictionaryCache.has(word)) {
-						// console.log(`"${word}" is already in the dictionary (after re-checking).`);
-						this.dictionaryPathLock = false; // Release lock
-						resolve(false); // No need to add again
-						return;
-					}
-
-					try {
-						// if a user has added some word manually
-						// Remove "checksum_v1 = " line and add word to the file
-						await this.removeChecksumAndAddWord.call(this, word);
-
-						this.dictionaryCache.add(word);
-						resolve(true);
-					} catch (error) {
-						this.dictionaryPathLock = false; // Release lock
-						reject(error);
-					} finally {
-						this.dictionaryPathLock = false; // Release lock in case of error or success
-					}
-				}
-			}, 50); // Polling interval to wait for the lock
+			this.dictionaryCache.add(word);
 		});
 	}
 
 	async removeChecksumAndAddWord(word: string): Promise<void> {
 		try {
-			const filePath = this.settings.dictionaryPath;
+			const content = await this.dictionarySyncManager.readFile();
 
-			const fileBuffer = await fs.promises.readFile(filePath);
-			const encoding = detectFileEncodingByPlatform();
-			const fileContent = iconv.decode(fileBuffer, encoding);
-
-			const lines = fileContent.split('\n');
+			const lines = content.split('\n');
 
 			const checksumIndex = lines.findIndex(line => line.startsWith("checksum_v1 = "));
 
@@ -342,13 +272,10 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 			}
 
 			// Write the updated content back to the file
-			const updatedContent = lines.join('\n');
-			const encodedContent = iconv.encode(updatedContent, encoding);
-			await fs.promises.writeFile(filePath, encodedContent);
-			console.log(`Added "${word}" to the dictionary as it can be split into valid words.`);
+			await this.dictionarySyncManager.writeFile(lines.join('\n'));
+			this.log(`Added "${word}" to the dictionary as it can be split into valid words.`);
 		} catch (error) {
-			console.error('Error processing dictionary file:', error);
-			throw error;
+			this.log('Error processing dictionary file:', LogLevel.Error, error);
 		}
 	}
 

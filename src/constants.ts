@@ -23,5 +23,11 @@ export const DICTIONARY_URLS = {
 	}
 };
 
+export enum LogLevel {
+	Info = 'log',
+	Warn = 'warn',
+	Error = 'error'
+}
+
 export const PLUGIN_FOLDER_NAME = 'case-aware-spellcheck-enhancer';
 export const PLUGIN_NAME = 'Case-Aware Spellcheck Enhancer';

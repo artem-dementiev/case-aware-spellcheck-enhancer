@@ -4,6 +4,7 @@ import * as path from "path";
 import nspell from "nspell";
 
 import {DICTIONARY_URLS} from "./constants";
+import {FormatStyle} from "./enums";
 
 
 // Function to load dictionaries using fetch (browser-compatible)
@@ -60,6 +61,31 @@ export function detectFileEncodingByPlatform(): string {
 		// Linux/macOS use UTF-8 by default
 		return 'utf8';
 	}
+}
+
+// Function to get split words based on selected format style
+export function getSplitWordsBasedOnFormat(word: string, format: FormatStyle): string[] {
+	let splitWords: string[] = [];
+
+	switch (format) {
+		case FormatStyle.CamelCase:
+			splitWords = [...splitWords, ...splitCamelCase(word)];
+			break;
+		case FormatStyle.PascalCase:
+			splitWords = [...splitWords, ...splitPascalCase(word)];
+			break;
+		case FormatStyle.SnakeCase:
+			splitWords = [...splitWords, ...splitSnakeCase(word)];
+			break;
+		case FormatStyle.KebabCase:
+			splitWords = [...splitWords, ...splitKebabCase(word)];
+			break;
+		case FormatStyle.ScreamingSnakeCase:
+			splitWords = [...splitWords, ...splitScreamingSnakeCase(word)];
+			break;
+	}
+
+	return splitWords;
 }
 
 // Utility functions for format-style parsing
