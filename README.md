@@ -73,13 +73,21 @@ After the next launch of **Obsidian**, the spellchecker will no longer underline
 4. **System Dictionary Update**:
 	- After the system dictionary is updated, **Obsidian** no longer underlines those words during spellcheck.
 
-> **Note**: Using the plugin does not guarantee the removal of red spellcheck underlines for all CamelCase or PascalCase words, even if they are added to the system dictionary. Obsidian may still underline some of them for unclear reasons.
+> **Notes**: 
+> - **Create a backup of your system spellcheck dictionary**
+> - Using the plugin does not guarantee the removal of red spellcheck underlines for all CamelCase or PascalCase words, even if they are added to the system dictionary. Obsidian may still underline some of them for unclear reasons.
 ---
 
 ## Developer Notes
 
+- **Glossary**:
+  - system spellcheck dictionary is a file located in:
+    - Windows: `%AppData%\Microsoft\Spelling\neutral\default.dic`, instead of `neutral` you might need to use another existing language folder
+    - Linux: `.config/obsidian/Custom Dictionary.txt`
+
 - **Adding New Language Support**:
-  To add support for a new language, you need to:
+  The current implementation may not be the best possible one.
+  If you want to add support for a new language, you need to:
 	- **Extend `DICTIONARY_URLS`**: Add the appropriate URL for the new language’s dictionary.
 	- **Update Regex**: Modify the regex patterns in the `splitCamelCase`, `splitPascalCase`, and `runSpellcheckOnNotes` methods to support new language and its special characters.
 

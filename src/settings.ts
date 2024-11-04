@@ -38,7 +38,7 @@ export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
 
 		// Dictionary Path Setting (with a modal window to select a file)
 		new Setting(containerEl)
-			.setName('System dictionary path')
+			.setName('System spellcheck dictionary path')
 			.setDesc('Path to the system spellcheck dictionary file')
 			.addButton(button => button
 				.setButtonText("Select Dictionary File")
@@ -47,7 +47,7 @@ export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('System dictionary path (Read-only mode)')
+			.setName('System spellcheck dictionary path (Read-only mode)')
 			.setDesc('Path to the system spellcheck dictionary file')
 			.addText(text => text.setValue(this.plugin.settings.dictionaryPath).setDisabled(true));
 
