@@ -1,6 +1,6 @@
 {
 	"name": "case-aware-spellcheck-enhancer",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "If you spend most of your time in the editing view and find yourself annoyed by the red spellcheck underline, you might find this plugin useful since it will automatically add words written in a certain format to a system dictionary, so that Obsidian won't underline them the next time you launch it.",
 	"main": "main.js",
 	"scripts": {
