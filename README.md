@@ -33,7 +33,10 @@ After the next launch of **Obsidian**, the spellchecker will no longer underline
 	- `kebab-case`
 	- `SCREAMING_SNAKE_CASE`
 
-> **Note**: Obsidian doesn’t underline the last three naming conventions, but they are included as a precaution for future compatibility.
+> **Note**: 
+> - **Create a backup of your system spellcheck dictionary**
+> - **Changing the system spell check dictionary may affect the operation of other applications**
+> - Obsidian doesn’t underline the last three naming conventions, but they are included as a precaution for future compatibility.
 
 ---
 
@@ -75,6 +78,7 @@ After the next launch of **Obsidian**, the spellchecker will no longer underline
 
 > **Notes**: 
 > - **Create a backup of your system spellcheck dictionary**
+> - **Changing the system spell check dictionary may affect the operation of other applications**
 > - Using the plugin does not guarantee the removal of red spellcheck underlines for all CamelCase or PascalCase words, even if they are added to the system dictionary. Obsidian may still underline some of them for unclear reasons.
 ---
 
