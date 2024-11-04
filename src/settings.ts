@@ -10,6 +10,7 @@ export interface CaseAwareSpellcheckEnhancerSettings {
 	selectedDictionaries: string[]; // List of selected dictionaries (e.g., ['en', 'fr'])
 	allowedExtensions: string;
 	debugMode: boolean;
+	progressBarEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: CaseAwareSpellcheckEnhancerSettings = {
@@ -18,7 +19,8 @@ export const DEFAULT_SETTINGS: CaseAwareSpellcheckEnhancerSettings = {
 	formatStyles: [FormatStyle.CamelCase, FormatStyle.PascalCase], // Preselect some styles
 	selectedDictionaries: ['en'],
 	allowedExtensions: ".md,.txt",
-	debugMode: false
+	debugMode: false,
+	progressBarEnabled: false
 };
 
 export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
@@ -120,6 +122,16 @@ export class CaseAwareSpellcheckEnhancerSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 					this.plugin.log("Debug mode updated");
 				}));
+
+		new Setting(containerEl)
+			.setName('Enable Progress Bar')
+			.setDesc('Toggle the visibility of the progress bar in the status bar')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.progressBarEnabled)
+				.onChange(async (value) => {
+					await this.plugin.getProgressBar().toggleProgressBar(value);
+				}));
+
 
 		new Setting(containerEl).setName('Naming conventions').setHeading();
 		Object.values(FormatStyle).forEach((style) => {

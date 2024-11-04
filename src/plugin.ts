@@ -9,6 +9,7 @@ import {CaseAwareSpellcheckEnhancerSettings, CaseAwareSpellcheckEnhancerSettingT
 import {getSplitWordsBasedOnFormat, loadDictionary} from "./utilities";
 import {LogLevel, PLUGIN_FOLDER_NAME, PLUGIN_NAME} from "./constants";
 import {FileSyncManager} from "./fileSyncManager";
+import ProgressBar from "./progressBar";
 
 export class CaseAwareSpellcheckEnhancer extends Plugin {
 	settings: CaseAwareSpellcheckEnhancerSettings;
@@ -18,6 +19,11 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 	private activeFile: TFile | null = null;
 	private parsedAllowedExtensions: string[] = [];
 	private spellCheckers: nspell[] = [];
+	private progressBar: ProgressBar | null = null;
+
+	getProgressBar(): ProgressBar {
+		return <ProgressBar>this.progressBar;
+	}
 
 	log(message: string, level: LogLevel = LogLevel.Info, ...optionalParams: any[]) {
 		if (this.settings.debugMode || level === LogLevel.Error) {
@@ -39,6 +45,7 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 		console.log(`Loading ${PLUGIN_NAME}`);
 
 		await this.loadSettings();
+		this.initializeProgressBar();
 		this.updateAllowedExtensions();
 		// Load the selected spellcheck dictionaries
 		await this.loadSelectedDictionaries();
@@ -51,18 +58,10 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 		this.addSettingTab(new CaseAwareSpellcheckEnhancerSettingTab(this.app, this));
 	}
 
-	async onDictionaryPathChange(dictionaryPath: string): Promise<boolean> {
-		let isValid = this.validateDictionaryPath(dictionaryPath);
-		if (isValid) {
-			this.dictionarySyncManager = new FileSyncManager(dictionaryPath);
-			await this.loadDictionaryIntoCache();
-		}
-		return isValid;
-	}
-
 	onunload() {
 		this.log(`Unloading ${PLUGIN_NAME}`);
 		this.stopRefreshInterval();
+		this.getProgressBar().unload();
 	}
 
 	async loadSettings() {
@@ -71,6 +70,10 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	private initializeProgressBar() {
+		this.progressBar = new ProgressBar(this);
 	}
 
 	// Update parsed extensions when settings are loaded or changed
@@ -116,6 +119,15 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 			this.saveSettings();
 			new Notice(`Default dictionary path set to: ${this.settings.dictionaryPath}`);
 		}
+	}
+
+	async onDictionaryPathChange(dictionaryPath: string): Promise<boolean> {
+		let isValid = this.validateDictionaryPath(dictionaryPath);
+		if (isValid) {
+			this.dictionarySyncManager = new FileSyncManager(dictionaryPath);
+			await this.loadDictionaryIntoCache();
+		}
+		return isValid;
 	}
 
 	validateDictionaryPath(dictionaryPath: string): boolean {
@@ -191,11 +203,21 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 
 	runSpellcheckOnNotes(file: TFile) {
 		this.app.vault.read(file).then(content => {
+			this.getProgressBar().resetProgress();
+			let amountOfWords = 0;
+			let index = 0;
 			const lines = content.split('\n');
-
+			const words_per_line = []
 			for (let line of lines) {
 				const words = line.match(/[a-zA-ZÄäÖöÜüßéèêëàâùûçÀÂÈÉÊËÎÏÔÛÙÇА-ЯЁа-яёҐЄІЇґєіїъ]+(?:[-'_][a-zA-ZÄäÖöÜüßéèêëàâùûçÀÂÈÉÊËÎÏÔÛÙÇА-ЯЁа-яёҐЄІЇґєіїъ]+)*/g) || []
-				words.forEach(word => {
+				words_per_line.push(words);
+				amountOfWords += words.length;
+			}
+			this.log(`Found ${amountOfWords} word/s.`);
+
+			words_per_line.forEach((words) => {
+				words.forEach((word) => {
+					this.getProgressBar().setProgress((index = ++index) * 100 / amountOfWords);
 					if (this.isWordMisspelled(word) && this.wordIsNotInDictionary(word)) {
 						// Try splitting the word based on the format styles
 						this.settings.formatStyles.forEach((format: FormatStyle) => {
@@ -214,7 +236,7 @@ export class CaseAwareSpellcheckEnhancer extends Plugin {
 						});
 					}
 				});
-			}
+			})
 		});
 	}
 

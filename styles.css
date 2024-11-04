@@ -1,8 +1,78 @@
-/*
+/*Progress bar*/
+.enhancer-progress-bar-container {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 8px;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.enhancer-progress-bar {
+	position: relative;
+	width: 100px;
+	height: 8px;
+	background-color: var(--background-modifier-border);
+	border-radius: 4px;
+	overflow: hidden;
+}
 
-If your plugin does not need CSS, delete this file.
+.enhancer-progress-value {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	background: linear-gradient(to right,
+	#ff4444 0%,
+	#ffaa00 50%,
+	#44ff44 100%
+	);
+	width: 0; /* default value, will be replaced dynamically */
+	transition: width 0.3s ease-out;
+}
 
-*/
+.enhancer-progress-text {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 9px;
+	color: var(--text-normal);
+	z-index: 1;
+	font-family: var(--font-interface);
+	text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+	font-weight: 600;
+}
+
+/* Animated stripes overlay */
+.enhancer-progress-value::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-image: linear-gradient(
+		45deg,
+		rgba(255, 255, 255, 0.2) 25%,
+		transparent 25%,
+		transparent 50%,
+		rgba(255, 255, 255, 0.2) 50%,
+		rgba(255, 255, 255, 0.2) 75%,
+		transparent 75%,
+		transparent
+	);
+	background-size: 20px 20px;
+	animation: progress-fill 1s linear infinite;
+	z-index: 1;
+}
+
+@keyframes progress-fill {
+	from {
+		background-position: 0 0;
+	}
+	to {
+		background-position: 20px 0;
+	}
+}
